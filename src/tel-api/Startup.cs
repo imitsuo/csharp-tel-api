@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -14,8 +15,12 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using tel_api.Configurations.Factories;
+using tel_api.Configurations.Middlewares;
+using tel_api.Domain.Models;
 using tel_api.Domain.Models.Options;
+using tel_api.Domain.Repositories;
 using tel_api.Domain.Services;
+using tel_api.Domain.Validators;
 
 namespace tel_api
 {
@@ -37,7 +42,19 @@ namespace tel_api
             services.Configure<Database>(Configuration.GetSection("Database"));
 
             services.AddScoped<IDatabaseFactory, DatabaseFactory>();
-            services.AddTransient<ISqlService, SqlService>();
+            services.AddTransient<ISqlService, SqlService>();            
+            services.AddTransient<ITarifaFixaRepository, TarifaFixaRepository>();            
+
+            services.AddTransient<ISimuladorTarifaService, SimuladorTarifaService>();
+            services.AddTransient<IPlanoFaleMais30Factory, PlanoFaleMais30Factory>();
+            services.AddTransient<IPlanoFaleMais60Factory, PlanoFaleMais60Factory>();
+            services.AddTransient<IPlanoFaleMais120Factory, PlanoFaleMais120Factory>();
+            services.AddTransient<ILigacaoBuilder, LigacaoBuilder>();            
+            services.AddTransient<IPlanoTarifaFixaFactory, PlanoTarifaFixaService>();
+            services.AddTransient<IPlanoFaleMaisBuilder, PlanoFaleMaisBuilder>();
+            services.AddTransient<IPlanoComercializadoService, PlanoComercializadoService>();
+            
+            services.AddSingleton<IValidator<SimulacaoCustoLigacao>, SimulacaoCustoLigacaoValidator>();
 
             services.AddSwaggerGen(c =>
             {
@@ -59,7 +76,9 @@ namespace tel_api
             }
 
             // app.UseHttpsRedirection();
-            
+
+            app.UseMiddleware<ExceptionHandlerMiddleware>();
+
              app.UseSwagger(c =>
             {
                 c.SerializeAsV2 = true;
@@ -78,7 +97,7 @@ namespace tel_api
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
-            });
+            });           
         }
     }
 }
